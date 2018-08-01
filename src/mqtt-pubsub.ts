@@ -11,6 +11,7 @@ export interface PubSubMQTTOptions {
   onMQTTSubscribe?: (id: number, granted: ISubscriptionGrant[]) => void;
   triggerTransform?: TriggerTransform;
   parseMessageWithEncoding?: string;
+  disableMessageParse?: boolean;
 }
 
 export class MQTTPubSub implements PubSubEngine {
@@ -41,6 +42,7 @@ export class MQTTPubSub implements PubSubEngine {
     this.publishOptionsResolver = options.publishOptions || (() => Promise.resolve({}));
     this.subscribeOptionsResolver = options.subscribeOptions || (() => Promise.resolve({}));
     this.parseMessageWithEncoding = options.parseMessageWithEncoding;
+    this.disableMessageParse = options.disableMessageParse || false;
   }
 
   public publish(trigger: string, payload: any): boolean {
@@ -124,12 +126,17 @@ export class MQTTPubSub implements PubSubEngine {
     if (!subscribers || !subscribers.length)
       return;
 
-    const messageString = message.toString(this.parseMessageWithEncoding);
     let parsedMessage;
-    try {
-      parsedMessage = JSON.parse(messageString);
-    } catch (e) {
-      parsedMessage = messageString;
+
+    if (this.disableMessageParse) {
+      parsedMessage = message;
+    } else {
+      const messageString = message.toString(this.parseMessageWithEncoding);
+      try {
+        parsedMessage = JSON.parse(messageString);
+      } catch (e) {
+        parsedMessage = messageString;
+      }
     }
 
     for (const subId of subscribers) {
@@ -148,6 +155,7 @@ export class MQTTPubSub implements PubSubEngine {
   private subsRefsMap: { [trigger: string]: Array<number> };
   private currentSubscriptionId: number;
   private parseMessageWithEncoding: string;
+  private disableMessageParse: boolean;
 }
 
 export type Path = Array<string | number>;

@@ -267,6 +267,29 @@ describe('MQTTPubSub', function () {
     });
   });
 
+  it('allows disabling of message parsing', function (done) {
+    const pubsub = new MQTTPubSub({
+      disableMessageParse: true,
+    });
+
+    let unSubId;
+    const validateMessage = message => {
+      pubsub.unsubscribe(unSubId);
+
+      try {
+        expect(JSON.parse(message.toString())).to.equals('test');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    };
+
+    pubsub.subscribe('comments', validateMessage).then(subId => {
+      pubsub.publish('comments', 'test');
+      unSubId = subId;
+    });
+  });
+
   it('allows to QoS for each publish topic', function (done) {
     const pubsub = new MQTTPubSub({
       publishOptions: topic => {
